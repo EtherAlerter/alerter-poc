@@ -1,13 +1,18 @@
 import { randomNumber, randomItem, randomAddress } from './testing';
 
-const allSubscriptions = {};
+const subscriptionTable = {};
 
-const pickRandomAccountFromContract = (state, contractAddress) => {
+const pickRandomAccountFromContract = ({ randomItem }) => (state, contractAddress) => {
   const contract = state.byAddress[contractAddress];
   return randomItem(Object.keys(contract.accounts));
 };
 
-const generateRandomEvent = (state, contractAddress, callback) => () => {
+const generateRandomEvent = ({
+  pickRandomAccountFromContract,
+  randomItem,
+  randomAddress,
+  randomNumber
+}) => (state, contractAddress, callback) => () => {
   switch (randomItem(['fromSubscribed', 'toSubscribed', 'none'])) {
     case 'fromSubscribed':
       callback(contractAddress, pickRandomAccountFromContract(state, contractAddress), randomAddress(), randomNumber(100000));
@@ -21,18 +26,31 @@ const generateRandomEvent = (state, contractAddress, callback) => () => {
   }
 };
 
-const subscribeToContractEvent = (subscriptionTable, generateEvent) => (state, contractAddress, callback) => {
-  console.log(`Subscribing to contract events on ${contractAddress}...`);
-  subscriptionTable[contractAddress] = setInterval(generateEvent(state, contractAddress, callback), randomNumber(5000));
+const subscribeToContractEvent = ({
+  subscriptionTable,
+  generateRandomEvent,
+  randomNumber
+}) => (state, contractAddress, callback) => {
+  console.log(`ETH: Subscribing to contract events on ${contractAddress}...`);
+  subscriptionTable[contractAddress] = setInterval(generateRandomEvent(state, contractAddress, callback), randomNumber(5000));
 };
 
-const unsubscribeFromContractEvent = subscriptionTable => contractAddress => {
-  console.log(`Unsubscribing from contract events on ${contractAddress}...`);
+const unsubscribeFromContractEvent = ({ subscriptionTable }) => contractAddress => {
+  console.log(`ETH: Unsubscribing from contract events on ${contractAddress}...`);
   clearInterval(subscriptionTable[contractAddress]);
   delete subscriptionTable[contractAddress];
 };
 
 module.exports = {
-  subscribeToContractEvent: subscribeToContractEvent(allSubscriptions, generateRandomEvent),
-  unsubscribeFromContractEvent: unsubscribeFromContractEvent(allSubscriptions)
+  subscribeToContractEvent: subscribeToContractEvent({
+    subscriptionTable,
+    generateRandomEvent: generateRandomEvent({
+      pickRandomAccountFromContract: pickRandomAccountFromContract({ randomItem }),
+      randomItem,
+      randomAddress,
+      randomNumber
+    }),
+    randomNumber
+  }),
+  unsubscribeFromContractEvent: unsubscribeFromContractEvent({ subscriptionTable })
 };

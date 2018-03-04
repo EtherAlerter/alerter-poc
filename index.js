@@ -31,17 +31,17 @@ const subscriptionListToMap = subscriptions => {
   }, {});
 };
 
-const initializeState = (subscriptions, convertToMap) => {
+const initializeState = ({ subscriptionListToMap }) => subscriptions => {
   return {
-    byAddress: convertToMap(subscriptions),
+    byAddress: subscriptionListToMap(subscriptions),
     list: subscriptions,
     allContracts: () => subscriptions.reduce((acc, s) => ([...acc, s.contractAddress]), []),
     allAccounts: () => subscriptions.reduce((acc, s) => ([...acc, ...Object.keys(s.accounts)]), [])
   };
 };
 
-const onEvent = state => (contractAddress, fromAccount, toAccount, amount) => {
-  console.log(`Event received for contract ${contractAddress}: ${fromAccount} -> ${toAccount} = ${amount}`);
+const onEvent = ({ state }) => (contractAddress, fromAccount, toAccount, amount) => {
+  console.log(`Event received for contract ${contractAddress}: Transfer(${fromAccount}, ${toAccount}, ${amount})`);
   if (state.byAddress[contractAddress].accounts[fromAccount]) {
     console.log(`  Firing event for ${fromAccount}`);
   } else if (state.byAddress[contractAddress].accounts[toAccount]) {
@@ -51,7 +51,7 @@ const onEvent = state => (contractAddress, fromAccount, toAccount, amount) => {
   }
 };
 
-const onSubscribe = (state, subscribeToContractEvent) => (contractAddress, account, subscriptionId) => {
+const onSubscribe = ({ state, subscribeToContractEvent }) => (contractAddress, account, subscriptionId) => {
   console.log(`New subscription for ${contractAddress}[${account}]`);
   if (state.byAddress[contractAddress]) {
     state.byAddress[contractAddress].accounts[account] = { subscriptionId };
@@ -69,7 +69,7 @@ const onSubscribe = (state, subscribeToContractEvent) => (contractAddress, accou
   dumpState(state);
 };
 
-const onUnsubscribe = state => (contractAddress, account) => {
+const onUnsubscribe = ({ state }) => (contractAddress, account) => {
   console.log(`Removing subscription for ${contractAddress}[${account}]`);
   const contract = state.byAddress[contractAddress];
   if (contract) {
@@ -97,11 +97,12 @@ const onUnsubscribe = state => (contractAddress, account) => {
   dumpState(state);
 };
 
-const state = initializeState(generateStartingSubscriptions(), subscriptionListToMap);
-dumpState(state);
+const startingSubscriptions = generateStartingSubscriptions();
+const state = initializeState({ subscriptionListToMap })(startingSubscriptions);
 
+dumpState(state);
 state.list.forEach(subscription => {
-  subscribeToContractEvent(state, subscription.contractAddress, onEvent(state));
+  subscribeToContractEvent(state, subscription.contractAddress, onEvent({ state }));
 });
 
-subscribeToControlMessages(state, onSubscribe(state, subscribeToContractEvent), onUnsubscribe(state));
+subscribeToControlMessages(state, onSubscribe({ state, subscribeToContractEvent }), onUnsubscribe({ state }));
