@@ -1,4 +1,7 @@
 import { randomNumber, randomItem, randomAddress } from './testing';
+import { logger } from './log';
+
+const log = logger('ETH');
 
 const subscriptionTable = {};
 
@@ -29,14 +32,15 @@ const generateRandomEvent = ({
 const subscribeToContractEvent = ({
   subscriptionTable,
   generateRandomEvent,
-  randomNumber
+  randomNumber,
+  log
 }) => (state, contractAddress, callback) => {
-  console.log(`ETH: Subscribing to contract events on ${contractAddress}...`);
+  log.info(`Subscribing to contract events on ${contractAddress}...`);
   subscriptionTable[contractAddress] = setInterval(generateRandomEvent(state, contractAddress, callback), randomNumber(5000));
 };
 
-const unsubscribeFromContractEvent = ({ subscriptionTable }) => contractAddress => {
-  console.log(`ETH: Unsubscribing from contract events on ${contractAddress}...`);
+const unsubscribeFromContractEvent = ({ subscriptionTable, log }) => contractAddress => {
+  log.info(`Unsubscribing from contract events on ${contractAddress}...`);
   clearInterval(subscriptionTable[contractAddress]);
   delete subscriptionTable[contractAddress];
 };
@@ -50,7 +54,8 @@ module.exports = {
       randomAddress,
       randomNumber
     }),
-    randomNumber
+    randomNumber,
+    log
   }),
-  unsubscribeFromContractEvent: unsubscribeFromContractEvent({ subscriptionTable })
+  unsubscribeFromContractEvent: unsubscribeFromContractEvent({ subscriptionTable, log })
 };
