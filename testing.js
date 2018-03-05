@@ -10,9 +10,18 @@ const randomAddress = () => {
   return result;
 };
 
-const generateRandomAccount = () => ({
-  subscriptionId: randomNumber(1000)
-});
+const generateRandomAccount = () => {
+  if (randomNumber(2) === 0) {
+    return {
+      subscriptionId: randomNumber(1000),
+      rule: () => randomNumber(2) === 0    
+    };
+  } else {
+    return {
+      rule: () => randomNumber(2) === 0
+    };
+  }
+};
 
 const generateRandomAccounts = n => {
   let result = {};

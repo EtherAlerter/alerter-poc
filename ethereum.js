@@ -45,6 +45,15 @@ const unsubscribeFromContractEvent = ({ subscriptionTable, log }) => contractAdd
   delete subscriptionTable[contractAddress];
 };
 
+const getAccountBalance = () => {};
+const getSubscriptionInfo = () => {
+  return {
+    source: 'ethereum',
+    type: 'email',
+    address: 'joe@there.net'
+  };
+};
+
 module.exports = {
   subscribeToContractEvent: subscribeToContractEvent({
     subscriptionTable,
@@ -57,5 +66,7 @@ module.exports = {
     randomNumber,
     log
   }),
-  unsubscribeFromContractEvent: unsubscribeFromContractEvent({ subscriptionTable, log })
+  unsubscribeFromContractEvent: unsubscribeFromContractEvent({ subscriptionTable, log }),
+  getAccountBalance,
+  getSubscriptionInfo
 };

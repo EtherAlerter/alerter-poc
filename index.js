@@ -7,24 +7,37 @@ import {
 import { subscribeToControlMessages } from './control';
 import {
   subscribeToContractEvent,
-  unsubscribeFromContractEvent
+  unsubscribeFromContractEvent,
+  getAccountBalance
 } from './ethereum';
 import {
   initializeState,
   dumpState
 } from './state';
+import { notify } from './notification';
+import { getSubscriptionInfo } from './subscription';
 import { logger } from './log';
 
 const log = logger('ALERT');
 
-const onEvent = ({ state, log }) => (contractAddress, fromAccount, toAccount, amount) => {
+const applyRule = ({ state, getAccountBalance, notify, getSubscriptionInfo, log }) => (contractAddress, account) => {
+  log.info(`Account ${account} is affected`);
+  const rule = state.byAddress[contractAddress].accounts[account].rule;
+  const newBalance = getAccountBalance(contractAddress, account);
+  if (rule(newBalance)) {
+    log.info('Alert rule applies!');
+    notify(contractAddress, account, getSubscriptionInfo(contractAddress, account));
+  } else {
+    log.info('Alert rule does not apply');
+  }
+};
+
+const onEvent = ({ state, applyRule, log }) => (contractAddress, fromAccount, toAccount, amount) => {
   log.info(`Event received for contract ${contractAddress}: Transfer(${fromAccount}, ${toAccount}, ${amount})`);
   if (state.byAddress[contractAddress].accounts[fromAccount]) {
-    log.info(`  Firing event for ${fromAccount}`);
+    applyRule(contractAddress, fromAccount);
   } else if (state.byAddress[contractAddress].accounts[toAccount]) {
-    log.info(`  Firing event for ${toAccount}`);
-  } else {
-    log.info(`  Ignoring.`);
+    applyRule(contractAddress, toAccount);
   }
 };
 
@@ -79,7 +92,8 @@ const state = initializeState(startingSubscriptions);
 
 dumpState(state);
 state.list.forEach(subscription => {
-  subscribeToContractEvent(state, subscription.contractAddress, onEvent({ state, log }));
+  subscribeToContractEvent(state, subscription.contractAddress, onEvent({ state, applyRule: applyRule({ state, getAccountBalance, notify, getSubscriptionInfo: getSubscriptionInfo({ state }), log }), log }));
 });
 
 subscribeToControlMessages(state, onSubscribe({ state, subscribeToContractEvent, log }), onUnsubscribe({ state, log }));
+log.info('Running...');
